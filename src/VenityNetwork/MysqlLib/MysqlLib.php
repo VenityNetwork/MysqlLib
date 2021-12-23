@@ -10,7 +10,10 @@ use pocketmine\utils\TextFormat;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
+use function asort;
+use function max;
 use function unserialize;
+use function usleep;
 use const PTHREADS_INHERIT_NONE;
 
 class MysqlLib{
@@ -27,26 +30,39 @@ class MysqlLib{
     }
 
 
-    public static function init(MysqlCredentials $credentials): MysqlLib{
-        return new self($credentials);
+    public static function init(MysqlCredentials $credentials, int $threads = 2): MysqlLib{
+        return new self($credentials, $threads);
     }
-    private MysqlThread $thread;
+    /** @var MysqlThread[] */
+    private array $thread = [];
+    private array $threadTasksCount = [];
     private array $onSuccess = [];
     private array $onFail = [];
     private int $nextId = 0;
+    private int $previousThread = -1;
 
-    private function __construct(MysqlCredentials $credentials) {
-        $notifier = new SleeperNotifier();
-        Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() {
-            $this->handleResponse();
-        });
-        $this->thread = new MysqlThread(Server::getInstance()->getLogger(), $notifier, $credentials);
-        $this->thread->start(PTHREADS_INHERIT_NONE);
+    private function __construct(MysqlCredentials $credentials, int $threads) {
+        for($i = 0; $i < $threads; $i++){
+            $notifier = new SleeperNotifier();
+            Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() use ($i) {
+                $this->handleResponse($i);
+            });
+            $t = new MysqlThread(Server::getInstance()->getLogger(), $notifier, $credentials);
+            $t->start(PTHREADS_INHERIT_NONE);
+            while(!$t->running) {
+                usleep(1000);
+            }
+            Server::getInstance()->getLogger()->debug("Started MysqlThread (".($i+1) . "/" . $threads . ")");
+            $this->thread[$i] = $t;
+            $this->threadTasksCount[$i] = 0;
+        }
         $this->checkVersion();
     }
 
     public function close() {
-        $this->thread->close();
+        foreach($this->thread as $thread){
+            $thread->close();
+        }
     }
 
     private function checkVersion() {
@@ -57,8 +73,29 @@ class MysqlLib{
         });
     }
 
-    private function handleResponse() {
-        while(($response = $this->thread->fetchResponse()) !== null) {
+    private function selectThread() : int {
+        $thread = null;
+        $currentTask = -1;
+        foreach($this->threadTasksCount as $k => $v) {
+            if($v >= $currentTask && $this->previousThread !== $k) {
+                $thread = $k;
+                $currentTask = $v;
+            }
+        }
+        if($thread === null) {
+            foreach($this->threadTasksCount as $k => $v) {
+                if($v > $currentTask) {
+                    $thread = $k;
+                    $currentTask = $v;
+                }
+            }
+        }
+        $this->previousThread = $thread;
+        return $thread;
+    }
+
+    private function handleResponse(int $thread) {
+        while(($response = $this->thread[$thread]->fetchResponse()) !== null) {
             $response = unserialize($response);
             if($response instanceof MysqlResponse) {
                 $id = $response->getId();
@@ -92,7 +129,7 @@ class MysqlLib{
         if($onFail !== null) {
             $this->onFail[$this->nextId] = $onFail;
         }
-        $this->thread->sendRequest(new MysqlRequest($this->nextId, $query, $args));
+        $this->thread[$this->selectThread()]->sendRequest(new MysqlRequest($this->nextId, $query, $args));
     }
 
     /**

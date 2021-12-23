@@ -26,7 +26,7 @@ class MysqlThread extends Thread{
     private Threaded $responses;
     private MysqlConnection $connection;
     private string $credentials;
-    private bool $running = true;
+    public bool $running = true;
 
     public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
         $this->requests = new Threaded;
@@ -55,6 +55,8 @@ class MysqlThread extends Thread{
             }
             $this->wait();
         }
+        $this->logger->info("MysqlThread closed.");
+        $this->connection->close();
     }
 
     private function checkConnection() {
@@ -67,8 +69,6 @@ class MysqlThread extends Thread{
                 sleep(5);
             }
         }
-        $this->logger->info("MysqlThread closed.");
-        $this->connection->close();
     }
 
     private function processRequests() {
