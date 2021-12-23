@@ -39,7 +39,11 @@ class MysqlConnection{
         }
     }
 
-    public function query(string $query, string $types = null, ...$args): bool|array{
+    public function getMysqli(): mysqli{
+        return $this->mysqli;
+    }
+
+    public function query(string $query, ?string $types = null, ...$args): bool|array{
         $this->checkConnection();
         if($types === null) {
             $result = $this->mysqli->query($query);

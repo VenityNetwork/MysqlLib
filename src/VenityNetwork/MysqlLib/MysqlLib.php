@@ -8,6 +8,9 @@ use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\utils\TextFormat;
 use VenityNetwork\MysqlLib\query\CheckVersionQuery;
+use VenityNetwork\MysqlLib\query\RawChangeQuery;
+use VenityNetwork\MysqlLib\query\RawGenericQuery;
+use VenityNetwork\MysqlLib\query\RawSelectQuery;
 use function unserialize;
 use function var_dump;
 use const PTHREADS_INHERIT_NONE;
@@ -72,7 +75,7 @@ class MysqlLib{
         }
     }
 
-    public function query(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function query(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null) {
         $this->nextId++;
         if($onSuccess !== null) {
             $this->onSuccess[$this->nextId] = $onSuccess;
@@ -81,6 +84,18 @@ class MysqlLib{
             $this->onFail[$this->nextId] = $onFail;
         }
         $this->thread->sendRequest(new MysqlRequest($this->nextId, $query, $args));
+    }
+
+    public function rawSelect(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $this->query(RawSelectQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
+    }
+
+    public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null) {
+        $this->query(RawGenericQuery::class, ["query" => $query], $onSuccess, $onFail);
+    }
+
+    public function rawChange(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $this->query(RawChangeQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
     }
 }
 
