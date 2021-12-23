@@ -9,6 +9,7 @@ use pocketmine\snooze\SleeperNotifier;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
+use function microtime;
 use function unserialize;
 use function usleep;
 use const PTHREADS_INHERIT_NONE;
@@ -16,7 +17,7 @@ use const PTHREADS_INHERIT_NONE;
 class MysqlLib{
 
     /** @var bool */
-    private static $packaged;
+    private static bool $packaged;
 
     public static function isPackaged() : bool{
         return self::$packaged;
@@ -27,7 +28,7 @@ class MysqlLib{
     }
 
 
-    public static function init(MysqlCredentials $credentials, int $threads = 2): MysqlLib{
+    public static function init(MysqlCredentials $credentials, int $threads = 1): MysqlLib{
         return new self($credentials, $threads);
     }
     /** @var MysqlThread[] */
@@ -68,6 +69,20 @@ class MysqlLib{
         }, function(string $error) {
             Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
         });
+
+        // test
+        $a = 0;
+        $start = microtime(true);
+        for($i = 0; $i < 1000; $i++){
+            $this->rawSelect("SELECT VERSION() as v", null, [], function(array $rows) use (&$a, $start) {
+                $a++;
+                if($a === 1000) {
+                    Server::getInstance()->getLogger()->notice("1000 queries in " . floor((microtime(true) - $start) * 1000) . "ms");
+                }
+            }, function(string $error){
+                Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
+            });
+        }
     }
 
     private function selectThread() : int {
@@ -92,6 +107,7 @@ class MysqlLib{
     }
 
     private function handleResponse(int $thread) {
+        $this->threadTasksCount[$thread]--;
         while(($response = $this->thread[$thread]->fetchResponse()) !== null) {
             $response = unserialize($response);
             if($response instanceof MysqlResponse) {
@@ -126,7 +142,9 @@ class MysqlLib{
         if($onFail !== null) {
             $this->onFail[$this->nextId] = $onFail;
         }
-        $this->thread[$this->selectThread()]->sendRequest(new MysqlRequest($this->nextId, $query, $args));
+        $t = $this->selectThread();
+        $this->thread[$t]->sendRequest(new MysqlRequest($this->nextId, $query, $args));
+        $this->threadTasksCount[$t]++;
     }
 
     /**
