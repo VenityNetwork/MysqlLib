@@ -6,12 +6,9 @@ namespace VenityNetwork\MysqlLib;
 
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
-use pocketmine\utils\TextFormat;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
-use function asort;
-use function max;
 use function unserialize;
 use function usleep;
 use const PTHREADS_INHERIT_NONE;
