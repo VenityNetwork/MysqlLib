@@ -1,0 +1,7 @@
+name: MysqlLib
+authors:
+  - AkmalFairuz
+antigen: VenityNetwork\MysqlLib
+version: 4.0.0
+api:
+  - 4.0.0
