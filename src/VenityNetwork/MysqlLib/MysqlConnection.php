@@ -35,7 +35,7 @@ class MysqlConnection{
 
     public function close() {
         if(isset($this->mysqli)){
-            $this->mysqli->close();
+            @$this->mysqli->close();
         }
     }
 

@@ -7,12 +7,10 @@ namespace VenityNetwork\MysqlLib;
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\utils\TextFormat;
-use VenityNetwork\MysqlLib\query\CheckVersionQuery;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
 use function unserialize;
-use function var_dump;
 use const PTHREADS_INHERIT_NONE;
 
 class MysqlLib{
@@ -47,11 +45,15 @@ class MysqlLib{
         $this->checkVersion();
     }
 
+    public function close() {
+        $this->thread->close();
+    }
+
     private function checkVersion() {
-        $this->query(CheckVersionQuery::class, [], function(string $version) {
-            Server::getInstance()->getLogger()->info(TextFormat::GREEN . "Database Version = " . $version);
-        }, function() {
-            Server::getInstance()->getLogger()->error("Failed to check MYSQL version information");
+        $this->rawSelect("SELECT VERSION() as v", null, [], function(array $rows) {
+            Server::getInstance()->getLogger()->notice("DB Version = " . $rows[0]["v"]);
+        }, function(string $error) {
+            Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
         });
     }
 
@@ -75,6 +77,13 @@ class MysqlLib{
         }
     }
 
+    /**
+     * @param string $query
+     * @param array $args
+     * @param callable|null $onSuccess ~ function(mixed $result) : void {}
+     * @param callable|null $onFail ~ function(string $errorMessage) : void {}
+     * @return void
+     */
     public function query(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null) {
         $this->nextId++;
         if($onSuccess !== null) {
@@ -86,14 +95,36 @@ class MysqlLib{
         $this->thread->sendRequest(new MysqlRequest($this->nextId, $query, $args));
     }
 
+    /**
+     * @param string $query
+     * @param string|null $types
+     * @param array $args
+     * @param callable|null $onSuccess
+     * @param callable|null $onFail
+     * @return void
+     */
     public function rawSelect(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
         $this->query(RawSelectQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
     }
 
+    /**
+     * @param string $query
+     * @param callable|null $onSuccess
+     * @param callable|null $onFail
+     * @return void
+     */
     public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null) {
         $this->query(RawGenericQuery::class, ["query" => $query], $onSuccess, $onFail);
     }
 
+    /**
+     * @param string $query
+     * @param string|null $types
+     * @param array $args
+     * @param callable|null $onSuccess
+     * @param callable|null $onFail
+     * @return void
+     */
     public function rawChange(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
         $this->query(RawChangeQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
     }

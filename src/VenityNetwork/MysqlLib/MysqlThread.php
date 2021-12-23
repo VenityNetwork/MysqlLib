@@ -11,6 +11,7 @@ use pocketmine\thread\Thread;
 use Threaded;
 use Throwable;
 use VenityNetwork\MysqlLib\query\Query;
+use function class_exists;
 use function floor;
 use function gettype;
 use function is_array;
@@ -25,6 +26,7 @@ class MysqlThread extends Thread{
     private Threaded $responses;
     private MysqlConnection $connection;
     private string $credentials;
+    private bool $running = true;
 
     public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
         $this->requests = new Threaded;
@@ -44,15 +46,19 @@ class MysqlThread extends Thread{
         /** @var MysqlCredentials $cred */
         $cred = unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort());
-        while(!$this->isKilled){
+        while($this->running){
             $this->checkConnection();
-            $this->processRequests();
+            try{
+                $this->processRequests();
+            } catch(Throwable $t) {
+                $this->logger->logException($t);
+            }
             $this->wait();
         }
     }
 
     private function checkConnection() {
-        while(true){
+        while($this->running){
             try{
                 $this->connection->checkConnection();
                 break;
@@ -61,6 +67,8 @@ class MysqlThread extends Thread{
                 sleep(5);
             }
         }
+        $this->logger->info("MysqlThread closed.");
+        $this->connection->close();
     }
 
     private function processRequests() {
@@ -69,25 +77,31 @@ class MysqlThread extends Thread{
             if($request instanceof MysqlRequest) {
                 $start = microtime(true);
                 $ar = Utils::argsToString($request->getParams());
-                $query = new ($request->getQuery())();
-                if($query instanceof Query) {
+                $queryClass = $request->getQuery();
+                if(class_exists($queryClass)){
                     try{
-                        $result = $query->execute($this->connection, $request->getParams());
-                        if(is_array($result)){
-                            $resultDebug = "(array) " . Utils::argsToString($result);
-                        } else {
-                            $resultDebug = "(".gettype($result).")" . $result;
-                        }
-                        $this->logger->debug("Query succeed in " . floor((microtime(true) - $start) * 1000) . "ms (query={$request->getQuery()},id={$request->getId()},params=$ar,result=`$resultDebug`)");
+                        $query = new ($queryClass)();
+                        if($query instanceof Query){
+                            $result = $query->execute($this->connection, $request->getParams());
+                            if(is_array($result)){
+                                $resultDebug = "(array) " . Utils::argsToString($result);
+                            }else{
+                                $resultDebug = "(" . gettype($result) . ")" . $result;
+                            }
+                            $this->logger->debug("Query succeed in " . floor((microtime(true) - $start) * 1000) . "ms (query={$request->getQuery()},id={$request->getId()},params=$ar,result=`$resultDebug`)");
 
-                        $this->sendResponse($request->getId(), $result);
-                        continue;
+                            $this->sendResponse($request->getId(), $result);
+                            continue;
+                        }
+                        throw new MysqlException("Query must instanceof ".Query::class." got " . $query::class);
                     } catch(Throwable $t) {
-                        $this->logger->error("Query error (query={$request->getQuery()},id={$request->getId()},params=$ar)");
+                        $this->sendResponse($request->getId(), null, true, $t->getMessage());
+                        $this->logger->error("Query error (query={$queryClass},id={$request->getId()},params=$ar)");
                         $this->logger->logException($t);
                     }
+                    continue;
                 }
-                $this->sendResponse($request->getId(), null, true);
+                $this->sendResponse($request->getId(), null, true, "Unknown query={$request->getQuery()}");
             }
         }
     }
@@ -101,12 +115,18 @@ class MysqlThread extends Thread{
         return $this->responses->shift();
     }
 
-    private function sendResponse(int $id, mixed $response, bool $error = false) {
-        $this->responses[] = serialize(new MysqlResponse($id, $response, $error));
+    private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = "") {
+        $this->responses[] = serialize(new MysqlResponse($id, $response, $error, $errorMessage));
         $this->notifier->wakeupSleeper();
     }
 
     public function getThreadName(): string{
         return "MysqlLib";
+    }
+
+    public function close(){
+        $this->running = false;
+        $this->notify();
+        $this->quit();
     }
 }
