@@ -6,8 +6,6 @@ namespace VenityNetwork\MysqlLib;
 
 use mysqli;
 use mysqli_result;
-use function implode;
-use function sleep;
 
 class MysqlConnection{
 
@@ -21,20 +19,14 @@ class MysqlConnection{
         protected int $port) {
     }
 
-    /**
-     * @throws MysqlException
-     */
     public function connect() {
         $this->close();
-        $this->mysqli = new mysqli();
-        if(!$this->mysqli->connect($this->host, $this->user, $this->password, $this->db, $this->port)) {
-            throw new MysqlException("Connection Error: " . $this->mysqli->connect_error);
+        $this->mysqli = @new mysqli($this->host, $this->user, $this->password, $this->db, $this->port);
+        if($this->mysqli->connect_error) {
+            throw new MysqlException("Connection Error: {$this->mysqli->connect_error} [{$this->mysqli->connect_errno}]");
         }
     }
 
-    /**
-     * @throws MysqlException
-     */
     public function checkConnection() {
         if(!isset($this->mysqli) || !$this->mysqli->ping()) {
             $this->connect();
@@ -47,9 +39,6 @@ class MysqlConnection{
         }
     }
 
-    /**
-     * @throws MysqlException
-     */
     public function query(string $query, string $types = null, ...$args): bool|array{
         $this->checkConnection();
         if($types === null) {

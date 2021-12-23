@@ -8,7 +8,7 @@ class MysqlResponse{
 
     public function __construct(
         private int $id,
-        private array $result,
+        private mixed $result,
         private bool $error
     ){
     }
@@ -17,7 +17,7 @@ class MysqlResponse{
         return $this->id;
     }
 
-    public function getResult(): array{
+    public function getResult(): mixed{
         return $this->result;
     }
 

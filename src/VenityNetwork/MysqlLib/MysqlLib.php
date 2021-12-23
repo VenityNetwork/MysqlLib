@@ -6,6 +6,7 @@ namespace VenityNetwork\MysqlLib;
 
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
+use pocketmine\utils\TextFormat;
 use VenityNetwork\MysqlLib\query\CheckVersionQuery;
 use function unserialize;
 use function var_dump;
@@ -13,16 +14,27 @@ use const PTHREADS_INHERIT_NONE;
 
 class MysqlLib{
 
+    /** @var bool */
+    private static $packaged;
+
+    public static function isPackaged() : bool{
+        return self::$packaged;
+    }
+
+    public static function detectPackaged() : void{
+        self::$packaged = __CLASS__ !== 'VenityNetwork\\MysqlLib\\MysqlLib';
+    }
+
+
     public static function init(MysqlCredentials $credentials): MysqlLib{
         return new self($credentials);
     }
-
     private MysqlThread $thread;
     private array $onSuccess = [];
     private array $onFail = [];
     private int $nextId = 0;
 
-    public function __construct(MysqlCredentials $credentials) {
+    private function __construct(MysqlCredentials $credentials) {
         $notifier = new SleeperNotifier();
         Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() {
             $this->handleResponse();
@@ -33,10 +45,10 @@ class MysqlLib{
     }
 
     private function checkVersion() {
-        $this->query(CheckVersionQuery::class, [], function(array $args) {
-            var_dump($args);
+        $this->query(CheckVersionQuery::class, [], function(string $version) {
+            Server::getInstance()->getLogger()->info(TextFormat::GREEN . "Database Version = " . $version);
         }, function() {
-            var_dump("ERROR");
+            Server::getInstance()->getLogger()->error("Failed to check MYSQL version information");
         });
     }
 
@@ -71,3 +83,9 @@ class MysqlLib{
         $this->thread->sendRequest(new MysqlRequest($this->nextId, $query, $args));
     }
 }
+
+function nop() : void{
+
+}
+
+MysqlLib::detectPackaged();

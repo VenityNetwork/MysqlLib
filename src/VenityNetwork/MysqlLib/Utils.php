@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace VenityNetwork\MysqlLib;
 
 use mysqli_result;
+use function json_encode;
 
 class Utils{
 
     public static function argsToString(array $args): string{
-        $ar = "";
-        foreach($args as $k => $v) {
-            $ar .= "$k:$v;";
-        }
-        return $ar;
+        return json_encode($args);
     }
 
     public static function mysqliResultToArray(mysqli_result $result): array{
