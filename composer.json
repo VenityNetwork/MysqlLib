@@ -1,0 +1,14 @@
+{
+  "name": "venitynetwork/mysqllib",
+  "version": "1.0.0",
+  "autoload": {
+    "psr-4": {
+      "VenityNetwork\\MysqlLib\\": "src/VenityNetwork/MysqlLib"
+    }
+  },
+  "require": {
+    "ext-sockets": "*",
+    "ext-pthreads": "*",
+    "ext-mysqli": "*"
+  }
+}

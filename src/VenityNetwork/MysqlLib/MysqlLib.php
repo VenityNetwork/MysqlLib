@@ -9,7 +9,6 @@ use pocketmine\snooze\SleeperNotifier;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
-use function microtime;
 use function unserialize;
 use function usleep;
 use const PTHREADS_INHERIT_NONE;
@@ -69,20 +68,6 @@ class MysqlLib{
         }, function(string $error) {
             Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
         });
-
-        // test
-        $a = 0;
-        $start = microtime(true);
-        for($i = 0; $i < 1000; $i++){
-            $this->rawSelect("SELECT VERSION() as v", null, [], function(array $rows) use (&$a, $start) {
-                $a++;
-                if($a === 1000) {
-                    Server::getInstance()->getLogger()->notice("1000 queries in " . floor((microtime(true) - $start) * 1000) . "ms");
-                }
-            }, function(string $error){
-                Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
-            });
-        }
     }
 
     private function selectThread() : int {
@@ -114,7 +99,7 @@ class MysqlLib{
                 $id = $response->getId();
                 if($response->isError()) {
                     if(isset($this->onFail[$id])) {
-                        ($this->onFail[$id])();
+                        ($this->onFail[$id])($response->getErrorMessage());
                     }
                 } else {
                     if(isset($this->onSuccess[$id])) {

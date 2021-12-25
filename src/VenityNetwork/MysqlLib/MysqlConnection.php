@@ -16,7 +16,12 @@ class MysqlConnection{
         protected string $user,
         protected string $password,
         protected string $db,
-        protected int $port) {
+        protected int $port,
+        protected MysqlThread $thread) {
+    }
+
+    public function getLogger() : \AttachableThreadedLogger{
+        return $this->thread->getLogger();
     }
 
     public function connect() {

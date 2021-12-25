@@ -42,10 +42,14 @@ class MysqlThread extends Thread{
         }
     }
 
+    public function getLogger(): \AttachableThreadedLogger{
+        return $this->logger;
+    }
+
     public function onRun(): void{
         /** @var MysqlCredentials $cred */
         $cred = unserialize($this->credentials);
-        $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort());
+        $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
         while($this->running){
             $this->checkConnection();
             try{
