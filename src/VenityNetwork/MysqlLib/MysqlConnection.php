@@ -67,10 +67,12 @@ class MysqlConnection{
                 throw new MysqlException("Prepare Statement Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
             }
             if(!$stmt->bind_param($types, ...$args)) {
+                $stmt->close();
                 $ar = Utils::argsToString($args);
                 throw new MysqlException("Prepare Statement bind_param Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
             }
             if(!$stmt->execute()) {
+                $stmt->close();
                 $ar = Utils::argsToString($args);
                 throw new MysqlException("Prepare Statement execute Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
             }
