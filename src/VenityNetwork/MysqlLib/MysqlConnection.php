@@ -76,8 +76,11 @@ class MysqlConnection{
             }
             $result = $stmt->get_result();
             if($result instanceof mysqli_result) {
-                return Utils::mysqliResultToArray($result);
+                $ret = Utils::mysqliResultToArray($result);
+                $stmt->close();
+                return $ret;
             }
+            $stmt->close();
             return $result;
         }
     }
