@@ -9,7 +9,7 @@ use VenityNetwork\MysqlLib\MysqlConnection;
 class RawChangeQuery extends Query{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
-        $conn->query($params["query"], $params["types"], ...$params["args"]);
+        $conn->query($params[0], $params[1], ...$params[2]);
         return $conn->getMysqli()->affected_rows;
     }
 }

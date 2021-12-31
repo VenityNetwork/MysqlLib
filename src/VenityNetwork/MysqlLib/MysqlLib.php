@@ -141,7 +141,14 @@ class MysqlLib{
      * @return void
      */
     public function rawSelect(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $this->query(RawSelectQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
+        $this->query(RawSelectQuery::class, [$query, $types, $args], $onSuccess, $onFail);
+    }
+
+    public function rawSelectOne(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $onSuccess = function(array $rows) use ($onSuccess) {
+            $onSuccess($rows[0] ?? null);
+        };
+        $this->rawSelect($query, $types, $args, $onSuccess, $onFail);
     }
 
     /**
@@ -151,7 +158,7 @@ class MysqlLib{
      * @return void
      */
     public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null) {
-        $this->query(RawGenericQuery::class, ["query" => $query], $onSuccess, $onFail);
+        $this->query(RawGenericQuery::class, [$query], $onSuccess, $onFail);
     }
 
     /**
@@ -163,7 +170,7 @@ class MysqlLib{
      * @return void
      */
     public function rawChange(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $this->query(RawChangeQuery::class, ["query" => $query, "types" => $types, "args" => $args], $onSuccess, $onFail);
+        $this->query(RawChangeQuery::class, [$query, $types, $args], $onSuccess, $onFail);
     }
 }
 
