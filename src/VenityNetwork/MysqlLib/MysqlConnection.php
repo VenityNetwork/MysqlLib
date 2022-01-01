@@ -6,8 +6,17 @@ namespace VenityNetwork\MysqlLib;
 
 use mysqli;
 use mysqli_result;
+use VenityNetwork\MysqlLib\result\ChangeResult;
+use VenityNetwork\MysqlLib\result\InsertResult;
+use VenityNetwork\MysqlLib\result\Result;
+use VenityNetwork\MysqlLib\result\SelectResult;
 
 class MysqlConnection{
+
+    const MODE_SELECT = 0;
+    const MODE_INSERT = 1;
+    const MODE_CHANGE = 2;
+    const MODE_GENERIC = 3;
 
     private mysqli $mysqli;
 
@@ -48,15 +57,36 @@ class MysqlConnection{
         return $this->mysqli;
     }
 
-    public function query(string $query, ?string $types = null, ...$args): bool|array{
+    /**
+     * @param int $mode
+     * @param string $query
+     * @param string|null $types
+     * @param ...$args
+     * @return bool|ChangeResult|InsertResult|Result|SelectResult
+     * @throws MysqlException
+     */
+    public function query(int $mode, string $query, ?string $types = null, ...$args) {
         $this->checkConnection();
         if($types === null) {
             $result = $this->mysqli->query($query);
-            if($result instanceof mysqli_result) {
-                return Utils::mysqliResultToArray($result);
-            }
-            if($result !== false) {
-                return $result;
+            switch($mode) {
+                case self::MODE_SELECT:
+                    $ret = new SelectResult(Utils::mysqliResultToArray($result));
+                    $result->close();
+                    return $ret;
+                case self::MODE_INSERT:
+                case self::MODE_CHANGE:
+                case self::MODE_GENERIC:
+                    if($result instanceof mysqli_result) {
+                        $result->close();
+                    }
+                    if($mode === self::MODE_INSERT) {
+                        return new InsertResult($this->mysqli->affected_rows, $this->mysqli->insert_id);
+                    }
+                    if($mode === self::MODE_CHANGE) {
+                        return new ChangeResult($this->mysqli->affected_rows);
+                    }
+                    return new Result();
             }
             $ar = Utils::argsToString($args);
             throw new MysqlException("Query Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
@@ -77,10 +107,23 @@ class MysqlConnection{
                 throw new MysqlException("Prepare Statement execute Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
             }
             $result = $stmt->get_result();
-            if($result instanceof mysqli_result) {
-                $ret = Utils::mysqliResultToArray($result);
-                $stmt->close();
-                return $ret;
+            switch($mode) {
+                case self::MODE_SELECT:
+                    $ret = new SelectResult(Utils::mysqliResultToArray($result));
+                    $stmt->close();
+                    return $ret;
+                case self::MODE_INSERT:
+                    $ret = new InsertResult($stmt->affected_rows, $stmt->insert_id);
+                    $stmt->close();
+                    return $ret;
+                case self::MODE_CHANGE:
+                    $ret = new ChangeResult($stmt->affected_rows);
+                    $stmt->close();
+                    return $ret;
+                case self::MODE_GENERIC:
+                    $ret = new Result();
+                    $stmt->close();
+                    return $ret;
             }
             $stmt->close();
             return $result;

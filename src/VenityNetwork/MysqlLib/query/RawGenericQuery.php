@@ -9,7 +9,7 @@ use VenityNetwork\MysqlLib\MysqlConnection;
 class RawGenericQuery extends Query{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
-        $conn->query($params[0]);
+        $conn->query(MysqlConnection::MODE_GENERIC, $params[0]);
         return true;
     }
 }
