@@ -9,6 +9,6 @@ use VenityNetwork\MysqlLib\MysqlConnection;
 class RawSelectQuery extends Query{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
-        return $conn->query(MysqlConnection::MODE_SELECT, $params[0], $params[1], ...$params[2]);
+        return $conn->query(MysqlConnection::MODE_SELECT, $params[0], $params[1], ...$params[2])->getRows();
     }
 }
