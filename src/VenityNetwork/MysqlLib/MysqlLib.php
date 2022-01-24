@@ -27,7 +27,7 @@ class MysqlLib{
     }
 
 
-    public static function init(MysqlCredentials $credentials, int $threads = 1): MysqlLib{
+    public static function init(MysqlCredentials $credentials, int $threads = 2): MysqlLib{
         return new self($credentials, $threads);
     }
     /** @var MysqlThread[] */

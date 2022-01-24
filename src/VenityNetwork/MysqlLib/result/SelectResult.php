@@ -16,4 +16,8 @@ class SelectResult extends Result{
     public function getOneRow(): ?array{
         return $this->rows[0] ?? null;
     }
+
+    public function toArray(): array{
+        return $this->rows;
+    }
 }
