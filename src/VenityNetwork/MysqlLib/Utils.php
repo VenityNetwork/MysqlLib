@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VenityNetwork\MysqlLib;
 
 use mysqli_result;
+use function gettype;
 use function json_encode;
 
 class Utils{
@@ -19,5 +20,29 @@ class Utils{
             $rows[] = $row;
         }
         return $rows;
+    }
+
+    public static function getTypesFromArray(array $param): string{
+        $ret = "";
+        foreach($param as $p) {
+            $ret .= self::getType($p);
+        }
+        return $ret;
+    }
+
+    /**
+     * @throws MysqlException
+     */
+    public static function getType($param): string{
+        if(is_string($param)){
+            return "s";
+        }
+        if(is_float($param)){
+            return "d";
+        }
+        if(is_int($param)){
+            return "i";
+        }
+        throw new MysqlException("Unsupported type: " . gettype($param));
     }
 }

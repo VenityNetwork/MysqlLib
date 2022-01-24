@@ -135,21 +135,20 @@ class MysqlLib{
 
     /**
      * @param string $query
-     * @param string|null $types
      * @param array $args
      * @param callable|null $onSuccess
      * @param callable|null $onFail
      * @return void
      */
-    public function rawSelect(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $this->query(RawSelectQuery::class, [$query, $types, $args], $onSuccess, $onFail);
+    public function rawSelect(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $this->query(RawSelectQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
-    public function rawSelectOne(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawSelectOne(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
         $onSuccess = function(array $rows) use ($onSuccess) {
             $onSuccess($rows[0] ?? null);
         };
-        $this->rawSelect($query, $types, $args, $onSuccess, $onFail);
+        $this->rawSelect($query, $args, $onSuccess, $onFail);
     }
 
     /**
@@ -164,29 +163,27 @@ class MysqlLib{
 
     /**
      * @param string $query
-     * @param string|null $types
      * @param array $args
      * @param callable|null $onSuccess
      * @param callable|null $onFail
      * @return void
      */
-    public function rawChange(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $this->query(RawChangeQuery::class, [$query, $types, $args], $onSuccess, $onFail);
+    public function rawChange(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $this->query(RawChangeQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
     /**
      * @param string $query
-     * @param string|null $types
      * @param array $args
      * @param callable|null $onSuccess - function(int $affected_rows, int $insert_id) : void {}
      * @param callable|null $onFail
      * @return void
      */
-    public function rawInsert(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawInsert(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
         $onSuccess = function(array $result) use ($onSuccess) {
             $onSuccess($result[0], $result[1]);
         };
-        $this->query(RawInsertQuery::class, [$query, $types, $args], $onSuccess, $onFail);
+        $this->query(RawInsertQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 }
 
