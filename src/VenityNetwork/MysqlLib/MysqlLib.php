@@ -174,8 +174,4 @@ class MysqlLib{
     }
 }
 
-function nop() : void{
-
-}
-
 MysqlLib::detectPackaged();

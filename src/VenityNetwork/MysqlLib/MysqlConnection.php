@@ -57,6 +57,35 @@ class MysqlConnection{
         return $this->mysqli;
     }
 
+
+    /**
+     * @return InsertResult
+     */
+    public function insert(string $query, ?string $types = null, ...$args) {
+        return $this->query(self::MODE_INSERT, $query, $types, ...$args);
+    }
+
+    /**
+     * @return SelectResult
+     */
+    public function select(string $query, ?string $types = null, ...$args) {
+        return $this->query(self::MODE_SELECT, $query, $types, ...$args);
+    }
+
+    /**
+     * @return ChangeResult
+     */
+    public function change(string $query, ?string $types = null, ...$args) {
+        return $this->query(self::MODE_CHANGE, $query, $types, ...$args);
+    }
+
+    /**
+     * @return Result
+     */
+    public function generic(string $query, ?string $types = null, ...$args) {
+        return $this->query(self::MODE_GENERIC, $query, $types, ...$args);
+    }
+
     /**
      * @param int $mode
      * @param string $query

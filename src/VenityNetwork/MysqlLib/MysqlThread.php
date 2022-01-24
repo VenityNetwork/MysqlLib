@@ -56,6 +56,7 @@ class MysqlThread extends Thread{
                 $this->processRequests();
             } catch(Throwable $t) {
                 $this->logger->logException($t);
+                $this->connection->close();
             }
             $this->wait();
         }
@@ -102,8 +103,10 @@ class MysqlThread extends Thread{
                         $this->sendResponse($request->getId(), null, true, $t->getMessage());
                         $this->logger->error("Query error (query={$queryClass},id={$request->getId()},params=$ar)");
                         $this->logger->logException($t);
+                        // reconnect when error to avoid deadlock transaction
+                        $this->connection->close();
+                        return;
                     }
-                    continue;
                 }
                 $this->sendResponse($request->getId(), null, true, "Unknown query={$request->getQuery()}");
             }
