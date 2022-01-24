@@ -21,8 +21,9 @@ class GetEmailQuery extends MysqlQuery{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
         $result = $conn->select('SELECT email FROM users WHERE name=? LIMIT 1', "s", $params["name"]);
-        if(count($result) === 1) {
-            return $result->getOneRow()["email"];
+        $row = $result->getOneRow();
+        if($row !== null) {
+            return $row["email"];
         }
         return null;
     }
