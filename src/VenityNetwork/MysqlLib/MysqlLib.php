@@ -8,6 +8,7 @@ use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
+use VenityNetwork\MysqlLib\query\RawInsertQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
 use function unserialize;
 use function usleep;
@@ -171,6 +172,21 @@ class MysqlLib{
      */
     public function rawChange(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
         $this->query(RawChangeQuery::class, [$query, $types, $args], $onSuccess, $onFail);
+    }
+
+    /**
+     * @param string $query
+     * @param string|null $types
+     * @param array $args
+     * @param callable|null $onSuccess - function(int $affected_rows, int $insert_id) : void {}
+     * @param callable|null $onFail
+     * @return void
+     */
+    public function rawInsert(string $query, ?string $types = null, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+        $onSuccess = function(array $result) use ($onSuccess) {
+            $onSuccess($result[0], $result[1]);
+        };
+        $this->query(RawInsertQuery::class, [$query, $types, $args], $onSuccess, $onFail);
     }
 }
 

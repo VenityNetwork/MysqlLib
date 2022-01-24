@@ -6,10 +6,10 @@ namespace VenityNetwork\MysqlLib\query;
 
 use VenityNetwork\MysqlLib\MysqlConnection;
 
-class RawGenericQuery extends Query{
+class RawInsertQuery extends Query{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
-        $conn->generic($params[0]);
-        return true;
+        $result = $conn->insert($params[0], $params[1], ...$params[2]);
+        return [$result->getAffectedRows(), $result->getInsertId()];
     }
 }
