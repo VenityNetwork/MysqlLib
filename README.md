@@ -20,7 +20,7 @@ $db = MysqlLib::init(new MysqlCredentials(
 class GetEmailQuery extends MysqlQuery{
 
     public function execute(MysqlConnection $conn, array $params): mixed{
-        $result = $conn->select('SELECT email FROM users WHERE name=? LIMIT 1', "s", $params["name"]);
+        $result = $conn->select('SELECT email FROM users WHERE name=? LIMIT 1', $params["name"]);
         $row = $result->getOneRow();
         if($row !== null) {
             return $row["email"];
@@ -43,7 +43,7 @@ function() {
 - Select (Return: rows)
 ```php
 /** @var \VenityNetwork\MysqlLib\MysqlLib $db */
-$db->rawSelect("SELECT * FROM players WHERE xuid=?", "s", [$xuid], function(?array $rows) {
+$db->rawSelect("SELECT * FROM players WHERE xuid=?", [$xuid], function(?array $rows) {
     var_dump($rows);
 }, function(string $errorMessage) {
     var_dump("Error: {$errorMessage}");
@@ -52,7 +52,7 @@ $db->rawSelect("SELECT * FROM players WHERE xuid=?", "s", [$xuid], function(?arr
 - Insert (Returns: affected rows, last insert id)
 ```php
 /** @var \VenityNetwork\MysqlLib\MysqlLib $db */
-$db->rawInsert("INSERT INTO players (xuid) VALUES (?)", "s", [$xuid], function(int $affected_rows, int $insert_id) {
+$db->rawInsert("INSERT INTO players (xuid) VALUES (?)", [$xuid], function(int $affected_rows, int $insert_id) {
     var_dump("Affected Rows: {$affected_rows}, Insert ID: {$insert_id}");
 }, function(string $errorMessage) {
     // todo
@@ -61,7 +61,7 @@ $db->rawInsert("INSERT INTO players (xuid) VALUES (?)", "s", [$xuid], function(i
 - Update / Delete (Return: affected rows)
 ```php
 /** @var \VenityNetwork\MysqlLib\MysqlLib $db */
-$db->rawChange("UPDATE players SET money=? WHERE xuid=?", "is", [$money, $xuid], function(int $affected_rows) {
+$db->rawChange("UPDATE players SET money=? WHERE xuid=?", [$money, $xuid], function(int $affected_rows) {
     var_dump("Affected Rows: {$affected_rows}");
 }, function(string $errorMessage) {
     // todo
