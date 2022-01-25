@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace VenityNetwork\MysqlLib;
 
 use mysqli_result;
+use function array_map;
+use function explode;
 use function gettype;
+use function implode;
 use function json_encode;
 
 class Utils{
@@ -44,5 +47,9 @@ class Utils{
             return "i";
         }
         throw new MysqlException("Unsupported type: " . gettype($param));
+    }
+
+    public static function addBacktick(string $str): string{
+        return implode(".", array_map(fn($c) => "`" . $c . "`", explode(".", $str)));
     }
 }

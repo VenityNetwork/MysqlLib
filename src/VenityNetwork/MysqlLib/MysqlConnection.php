@@ -61,42 +61,41 @@ class MysqlConnection{
     /**
      * @return InsertResult
      */
-    public function insert(string $query, ?string $types = null, ...$args) {
-        return $this->query(self::MODE_INSERT, $query, $types, ...$args);
+    public function insert(string $query, ...$args) {
+        return $this->query(self::MODE_INSERT, $query, ...$args);
     }
 
     /**
      * @return SelectResult
      */
-    public function select(string $query, ?string $types = null, ...$args) {
-        return $this->query(self::MODE_SELECT, $query, $types, ...$args);
+    public function select(string $query, ...$args) {
+        return $this->query(self::MODE_SELECT, $query, ...$args);
     }
 
     /**
      * @return ChangeResult
      */
-    public function change(string $query, ?string $types = null, ...$args) {
-        return $this->query(self::MODE_CHANGE, $query, $types, ...$args);
+    public function change(string $query, ...$args) {
+        return $this->query(self::MODE_CHANGE, $query, ...$args);
     }
 
     /**
      * @return Result
      */
-    public function generic(string $query, ?string $types = null, ...$args) {
-        return $this->query(self::MODE_GENERIC, $query, $types, ...$args);
+    public function generic(string $query) {
+        return $this->query(self::MODE_GENERIC, $query);
     }
 
     /**
      * @param int $mode
      * @param string $query
-     * @param string|null $types
      * @param ...$args
      * @return bool|ChangeResult|InsertResult|Result|SelectResult
      * @throws MysqlException
      */
-    public function query(int $mode, string $query, ?string $types = null, ...$args) {
+    public function query(int $mode, string $query, ...$args) {
         $this->checkConnection();
-        if($types === null) {
+        if(count($args) === 0) {
             $result = $this->mysqli->query($query);
             switch($mode) {
                 case self::MODE_SELECT:
@@ -120,6 +119,7 @@ class MysqlConnection{
             $ar = Utils::argsToString($args);
             throw new MysqlException("Query Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
         } else {
+            $types = Utils::getTypesFromArray($args);
             $stmt = $this->mysqli->prepare($query);
             if($stmt === false) {
                 $ar = Utils::argsToString($args);
