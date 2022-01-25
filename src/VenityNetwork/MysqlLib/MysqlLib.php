@@ -116,8 +116,8 @@ class MysqlLib{
     /**
      * @param string $query
      * @param array $args
-     * @param callable|null $onSuccess ~ function(mixed $result) : void {}
-     * @param callable|null $onFail ~ function(string $errorMessage) : void {}
+     * @param callable|null $onSuccess - function(mixed $result) : void {}
+     * @param callable|null $onFail - function(string $errorMessage) : void {}
      * @return void
      */
     public function query(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null) {

@@ -117,7 +117,7 @@ class MysqlConnection{
                     return new Result();
             }
             $ar = Utils::argsToString($args);
-            throw new MysqlException("Query Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,types={$types},args={$ar})");
+            throw new MysqlException("Query Error: {$this->mysqli->error} [{$this->mysqli->errno}] (query=`{$query}`,args={$ar})");
         } else {
             $types = Utils::getTypesFromArray($args);
             $stmt = $this->mysqli->prepare($query);
