@@ -7,7 +7,7 @@ A Mysql library for PocketMine-MP.
 1. Initialization
 ```php
 $threads = 2; // threads count, increase this if the query is slow and prevent blocking query
-$db = MysqlLib::init(new MysqlCredentials(
+$db = MysqlLib::init($plugin, new MysqlCredentials(
     host: "127.0.0.1",
     user: "root",
     password: "",
