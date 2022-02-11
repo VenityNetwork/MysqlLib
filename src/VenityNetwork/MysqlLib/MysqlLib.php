@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace VenityNetwork\MysqlLib;
 
+use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
@@ -28,8 +30,8 @@ class MysqlLib{
     }
 
 
-    public static function init(MysqlCredentials $credentials, int $threads = 2): MysqlLib{
-        return new self($credentials, $threads);
+    public static function init(PluginBase $plugin, MysqlCredentials $credentials, int $threads = 2): MysqlLib{
+        return new self($plugin, $credentials, $threads);
     }
     /** @var MysqlThread[] */
     private array $thread = [];
@@ -39,7 +41,7 @@ class MysqlLib{
     private int $nextId = 0;
     private int $previousThread = -1;
 
-    private function __construct(MysqlCredentials $credentials, int $threads) {
+    private function __construct(private PluginBase $plugin, MysqlCredentials $credentials, int $threads) {
         for($i = 0; $i < $threads; $i++){
             $notifier = new SleeperNotifier();
             Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() use ($i) {
@@ -55,6 +57,11 @@ class MysqlLib{
             $this->threadTasksCount[$i] = 0;
         }
         $this->checkVersion();
+        $this->plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
+            foreach($this->thread as $t) {
+                $t->triggerGarbageCollector();
+            }
+        }), 20 * 1800);
     }
 
     public function close() {

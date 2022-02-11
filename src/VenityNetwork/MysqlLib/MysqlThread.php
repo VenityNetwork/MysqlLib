@@ -109,6 +109,10 @@ class MysqlThread extends Thread{
                     }
                 }
                 $this->sendResponse($request->getId(), null, true, "Unknown query={$request->getQuery()}");
+            }elseif($request === "gc"){
+                gc_enable();
+                gc_collect_cycles();
+                gc_mem_caches();
             }
         }
     }
@@ -135,5 +139,9 @@ class MysqlThread extends Thread{
         $this->running = false;
         $this->notify();
         $this->quit();
+    }
+
+    public function triggerGarbageCollector(){
+        $this->requests[] = serialize("gc");
     }
 }
