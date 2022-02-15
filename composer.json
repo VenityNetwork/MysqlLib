@@ -9,6 +9,9 @@
   "require": {
     "ext-sockets": "*",
     "ext-pthreads": "*",
-    "ext-mysqli": "*"
+    "ext-mysqli": "*",
+    "ext-yaml": "*",
+    "ext-zlib": "*",
+    "ext-gd": "*"
   }
 }
