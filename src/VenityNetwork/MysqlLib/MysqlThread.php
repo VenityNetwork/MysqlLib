@@ -15,6 +15,7 @@ use function class_exists;
 use function floor;
 use function gettype;
 use function is_array;
+use function is_bool;
 use function microtime;
 use function serialize;
 use function sleep;
@@ -62,6 +63,7 @@ class MysqlThread extends Thread{
         }
         $this->logger->info("MysqlThread closed.");
         $this->connection->close();
+        $this->running = false;
     }
 
     private function checkConnection() {
@@ -91,7 +93,7 @@ class MysqlThread extends Thread{
                             if(is_array($result)){
                                 $resultDebug = "(array) " . Utils::argsToString($result);
                             }else{
-                                $resultDebug = "(" . gettype($result) . ")" . $result;
+                                $resultDebug = "(" . gettype($result) . ")" . (is_bool($result) ? ($result ? "TRUE" : "FALSE") : $result);
                             }
                             $this->logger->debug("Query succeed in " . floor((microtime(true) - $start) * 1000) . "ms (query={$request->getQuery()},id={$request->getId()},params=$ar,result=`$resultDebug`)");
 
@@ -136,12 +138,21 @@ class MysqlThread extends Thread{
     }
 
     public function close(){
+        if(!$this->running) {
+            return;
+        }
         $this->running = false;
         $this->notify();
         $this->quit();
     }
 
+    public function quit(): void{
+        $this->close();
+        parent::quit();
+    }
+
     public function triggerGarbageCollector(){
         $this->requests[] = serialize("gc");
+        $this->notify();
     }
 }
