@@ -152,9 +152,11 @@ class MysqlLib{
     }
 
     public function rawSelectOne(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $onSuccess = function(array $rows) use ($onSuccess) {
-            $onSuccess($rows[0] ?? null);
-        };
+	    if($onSuccess !== null) {
+		    $onSuccess = function(array $rows) use ($onSuccess) {
+			    $onSuccess($rows[0] ?? null);
+		    };
+	    }
         $this->rawSelect($query, $args, $onSuccess, $onFail);
     }
 
@@ -187,9 +189,11 @@ class MysqlLib{
      * @return void
      */
     public function rawInsert(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
-        $onSuccess = function(array $result) use ($onSuccess) {
-            $onSuccess($result[0], $result[1]);
-        };
+	    if($onSuccess !== null) {
+		    $onSuccess = function(array $result) use ($onSuccess) {
+			    $onSuccess($result[0], $result[1]);
+		    };
+	    }
         $this->query(RawInsertQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 }
