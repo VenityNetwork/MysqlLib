@@ -17,9 +17,9 @@ use function gettype;
 use function is_array;
 use function is_bool;
 use function microtime;
-use function serialize;
+use function igbinary_serialize;
 use function sleep;
-use function unserialize;
+use function igbinary_unserialize;
 
 class MysqlThread extends Thread{
 
@@ -32,7 +32,7 @@ class MysqlThread extends Thread{
     public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
         $this->requests = new Threaded;
         $this->responses = new Threaded;
-        $this->credentials = serialize($credentials);
+        $this->credentials =igbinary_serialize($credentials);
 
         if(!MysqlLib::isPackaged()){
             /** @noinspection PhpUndefinedMethodInspection */
@@ -49,7 +49,7 @@ class MysqlThread extends Thread{
 
     public function onRun(): void{
         /** @var MysqlCredentials $cred */
-        $cred = unserialize($this->credentials);
+        $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
         while($this->running){
             $this->checkConnection();
@@ -80,7 +80,7 @@ class MysqlThread extends Thread{
 
     private function processRequests() {
         while(($request = $this->requests->shift()) !== null) {
-            $request = unserialize($request);
+            $request = igbinary_unserialize($request);
             if($request instanceof MysqlRequest) {
                 $start = microtime(true);
                 $ar = Utils::argsToString($request->getParams());
@@ -120,7 +120,7 @@ class MysqlThread extends Thread{
     }
 
     public function sendRequest(MysqlRequest $request) {
-        $this->requests[] = serialize($request);
+        $this->requests[] =igbinary_serialize($request);
         $this->notify();
     }
 
@@ -129,7 +129,7 @@ class MysqlThread extends Thread{
     }
 
     private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = "") {
-        $this->responses[] = serialize(new MysqlResponse($id, $response, $error, $errorMessage));
+        $this->responses[] =igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
         $this->notifier->wakeupSleeper();
     }
 
@@ -152,7 +152,7 @@ class MysqlThread extends Thread{
     }
 
     public function triggerGarbageCollector(){
-        $this->requests[] = serialize("gc");
+        $this->requests[] =igbinary_serialize("gc");
         $this->notify();
     }
 }

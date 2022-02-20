@@ -12,6 +12,7 @@
     "ext-mysqli": "*",
     "ext-yaml": "*",
     "ext-zlib": "*",
-    "ext-gd": "*"
+    "ext-gd": "*",
+    "ext-igbinary": "*"
   }
 }

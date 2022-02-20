@@ -12,7 +12,7 @@ use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawInsertQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
-use function unserialize;
+use function igbinary_unserialize;
 use function usleep;
 use const PTHREADS_INHERIT_NONE;
 
@@ -102,7 +102,7 @@ class MysqlLib{
     private function handleResponse(int $thread) {
         $this->threadTasksCount[$thread]--;
         while(($response = $this->thread[$thread]->fetchResponse()) !== null) {
-            $response = unserialize($response);
+            $response = igbinary_unserialize($response);
             if($response instanceof MysqlResponse) {
                 $id = $response->getId();
                 if($response->isError()) {
