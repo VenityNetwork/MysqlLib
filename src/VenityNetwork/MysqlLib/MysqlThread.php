@@ -32,7 +32,7 @@ class MysqlThread extends Thread{
     public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
         $this->requests = new Threaded;
         $this->responses = new Threaded;
-        $this->credentials =igbinary_serialize($credentials);
+        $this->credentials = igbinary_serialize($credentials);
 
         if(!MysqlLib::isPackaged()){
             /** @noinspection PhpUndefinedMethodInspection */
@@ -120,7 +120,7 @@ class MysqlThread extends Thread{
     }
 
     public function sendRequest(MysqlRequest $request) {
-        $this->requests[] =igbinary_serialize($request);
+        $this->requests[] = igbinary_serialize($request);
         $this->notify();
     }
 
@@ -129,7 +129,7 @@ class MysqlThread extends Thread{
     }
 
     private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = "") {
-        $this->responses[] =igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
+        $this->responses[] = igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
         $this->notifier->wakeupSleeper();
     }
 
