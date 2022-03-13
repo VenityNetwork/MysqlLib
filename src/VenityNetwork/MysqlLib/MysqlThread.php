@@ -57,7 +57,7 @@ class MysqlThread extends Thread{
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
-        while($this->running){
+        while($this->isSafeRunning()){
             $this->checkConnection();
             try{
                 $this->processRequests();
@@ -71,7 +71,9 @@ class MysqlThread extends Thread{
         }
         $this->logger->info("MysqlThread closed.");
         $this->connection->close();
-        $this->running = false;
+        $this->synchronized(function() {
+            $this->running = false;
+        });
     }
 
     private function checkConnection() {
