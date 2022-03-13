@@ -18,7 +18,6 @@ use function is_array;
 use function is_bool;
 use function microtime;
 use function igbinary_serialize;
-use function sleep;
 use function igbinary_unserialize;
 
 class MysqlThread extends Thread{
