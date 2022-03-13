@@ -47,6 +47,12 @@ class MysqlThread extends Thread{
         return $this->logger;
     }
 
+    public function isSafeRunning() : bool {
+        return $this->synchronized(function() : bool {
+            return $this->running;
+        });
+    }
+
     public function onRun(): void{
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
@@ -69,19 +75,25 @@ class MysqlThread extends Thread{
     }
 
     private function checkConnection() {
-        while($this->running){
+        while($this->isSafeRunning()){
             try{
                 $this->connection->checkConnection();
                 break;
             }catch(Throwable $e){
                 $this->logger->logException($e);
-                sleep(5);
+                $this->wait(5 * 1000000); // 5 seconds
             }
         }
     }
 
+    private function readRequests() : ?string{
+        return $this->synchronized(function() : ?string{
+            return $this->requests->shift();
+        });
+    }
+
     private function processRequests() {
-        while(($request = $this->requests->shift()) !== null) {
+        while(($request = $this->readRequests()) !== null) {
             $request = igbinary_unserialize($request);
             if($request instanceof MysqlRequest) {
                 $start = microtime(true);
@@ -129,12 +141,16 @@ class MysqlThread extends Thread{
     }
 
     public function fetchResponse() : ?string {
-        return $this->responses->shift();
+        return $this->synchronized(function() : ?string {
+            return $this->responses->shift();
+        });
     }
 
     private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = "") {
-        $this->responses[] = igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
-        $this->notifier->wakeupSleeper();
+        $this->synchronized(function() use ($id, $response, $error, $errorMessage) : void {
+            $this->responses[] = igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
+            $this->notifier->wakeupSleeper();
+        });
     }
 
     public function getThreadName(): string{
@@ -142,11 +158,13 @@ class MysqlThread extends Thread{
     }
 
     public function close(){
-        if(!$this->running) {
+        if(!$this->isSafeRunning()) {
             return;
         }
-        $this->running = false;
-        $this->notify();
+        $this->synchronized(function() {
+            $this->running = false;
+            $this->notify();
+        });
         $this->quit();
     }
 
@@ -156,7 +174,7 @@ class MysqlThread extends Thread{
     }
 
     public function triggerGarbageCollector(){
-        $this->synchronized(function() {
+        $this->synchronized(function() : void {
             $this->requests[] = igbinary_serialize("gc");
             $this->notifyOne();
         });
