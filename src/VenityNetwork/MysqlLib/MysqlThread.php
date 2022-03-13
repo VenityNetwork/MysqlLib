@@ -59,7 +59,9 @@ class MysqlThread extends Thread{
                 $this->logger->logException($t);
                 $this->connection->close();
             }
-            $this->wait();
+            $this->synchronized(function() {
+                $this->wait();
+            });
         }
         $this->logger->info("MysqlThread closed.");
         $this->connection->close();
@@ -120,8 +122,10 @@ class MysqlThread extends Thread{
     }
 
     public function sendRequest(MysqlRequest $request) {
-        $this->requests[] = igbinary_serialize($request);
-        $this->notify();
+        $this->synchronized(function() use ($request) {
+            $this->requests[] = igbinary_serialize($request);
+            $this->notifyOne();
+        });
     }
 
     public function fetchResponse() : ?string {
@@ -152,7 +156,9 @@ class MysqlThread extends Thread{
     }
 
     public function triggerGarbageCollector(){
-        $this->requests[] =igbinary_serialize("gc");
-        $this->notify();
+        $this->synchronized(function() {
+            $this->requests[] = igbinary_serialize("gc");
+            $this->notifyOne();
+        });
     }
 }
