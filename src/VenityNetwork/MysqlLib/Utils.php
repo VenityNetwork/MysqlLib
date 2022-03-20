@@ -6,15 +6,21 @@ namespace VenityNetwork\MysqlLib;
 
 use mysqli_result;
 use function array_map;
+use function base64_encode;
 use function explode;
 use function gettype;
 use function implode;
 use function json_encode;
+use function serialize;
 
 class Utils{
 
     public static function argsToString(array $args): string{
-        return json_encode($args);
+        $ret = @json_encode($args);
+        if($ret === false) {
+            return base64_encode(serialize($args));
+        }
+        return $ret;
     }
 
     public static function mysqliResultToArray(mysqli_result $result): array{
