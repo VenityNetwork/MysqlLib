@@ -63,28 +63,44 @@ class MysqlConnection{
      * @return InsertResult
      */
     public function insert(string $query, ...$args) {
-        return $this->query(self::MODE_INSERT, $query, ...$args);
+        $ret = $this->query(self::MODE_INSERT, $query, ...$args);
+        if(!$ret instanceof InsertResult) {
+            throw new MysqlException("Expected InsertResult got " . serialize($ret));
+        }
+        return $ret;
     }
 
     /**
      * @return SelectResult
      */
     public function select(string $query, ...$args) {
-        return $this->query(self::MODE_SELECT, $query, ...$args);
+        $ret = $this->query(self::MODE_SELECT, $query, ...$args);
+        if(!$ret instanceof SelectResult) {
+            throw new MysqlException("Expected SelectResult got " . serialize($ret));
+        }
+        return $ret;
     }
 
     /**
      * @return ChangeResult
      */
     public function change(string $query, ...$args) {
-        return $this->query(self::MODE_CHANGE, $query, ...$args);
+        $ret = $this->query(self::MODE_CHANGE, $query, ...$args);
+        if(!$ret instanceof ChangeResult) {
+            throw new MysqlException("Expected ChangeResult got " . serialize($ret));
+        }
+        return $ret;
     }
 
     /**
      * @return Result
      */
     public function generic(string $query) {
-        return $this->query(self::MODE_GENERIC, $query);
+        $ret = $this->query(self::MODE_GENERIC, $query);
+        if(!$ret instanceof Result) {
+            throw new MysqlException("Expected Result got " . serialize($ret));
+        }
+        return $ret;
     }
 
     /**

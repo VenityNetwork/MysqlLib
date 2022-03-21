@@ -19,6 +19,7 @@ use function is_bool;
 use function microtime;
 use function igbinary_serialize;
 use function igbinary_unserialize;
+use function sleep;
 
 class MysqlThread extends Thread{
 
@@ -56,7 +57,10 @@ class MysqlThread extends Thread{
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
         while($this->isSafeRunning()){
-            $this->checkConnection();
+            if(!$this->checkConnection()) {
+                sleep(5);
+                continue;
+            }
             try{
                 $this->processRequests();
             } catch(Throwable $t) {
@@ -74,16 +78,14 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function checkConnection() {
-        while($this->isSafeRunning()){
-            try{
-                $this->connection->checkConnection();
-                break;
-            }catch(Throwable $e){
-                $this->logger->logException($e);
-                $this->wait(5 * 1000000); // 5 seconds
-            }
+    private function checkConnection(): bool{
+        try{
+            $this->connection->checkConnection();
+            return true;
+        }catch(Throwable $e){
+            $this->logger->logException($e);
         }
+        return false;
     }
 
     private function readRequests() : ?string{
