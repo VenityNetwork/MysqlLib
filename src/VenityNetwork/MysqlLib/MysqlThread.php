@@ -34,11 +34,10 @@ class MysqlThread extends Thread{
         $this->credentials = igbinary_serialize($credentials);
 
         if(!MysqlLib::isPackaged()){
-            /** @noinspection PhpUndefinedMethodInspection */
-            /** @noinspection NullPointerExceptionInspection */
-            /** @var ClassLoader $cl */
-            $cl = Server::getInstance()->getPluginManager()->getPlugin("DEVirion")->getVirionClassLoader();
-            $this->setClassLoaders([Server::getInstance()->getLoader(), $cl]);
+            if(($virion = Server::getInstance()->getPluginManager()->getPlugin("DEVirion")) !== null){
+                $cl = $virion->getVirionClassLoader();
+                $this->setClassLoaders([Server::getInstance()->getLoader(), $cl]);
+            }
         }
     }
 
