@@ -10,6 +10,7 @@ use VenityNetwork\MysqlLib\result\ChangeResult;
 use VenityNetwork\MysqlLib\result\InsertResult;
 use VenityNetwork\MysqlLib\result\Result;
 use VenityNetwork\MysqlLib\result\SelectResult;
+use function mysqli_set_opt;
 
 class MysqlConnection{
 
