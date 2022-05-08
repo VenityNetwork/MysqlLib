@@ -13,7 +13,9 @@ use Throwable;
 use VenityNetwork\MysqlLib\query\Query;
 use function class_exists;
 use function floor;
+use function gc_enable;
 use function gettype;
+use function ini_set;
 use function is_array;
 use function is_bool;
 use function microtime;
@@ -53,6 +55,8 @@ class MysqlThread extends Thread{
     }
 
     public function onRun(): void{
+        ini_set("memory_limit", "256M");
+        gc_enable();
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
