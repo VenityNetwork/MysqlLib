@@ -105,17 +105,20 @@ class MysqlLib{
             $response = igbinary_unserialize($response);
             if($response instanceof MysqlResponse) {
                 $id = $response->getId();
-                if($response->isError()) {
-                    if(isset($this->onFail[$id])) {
-                        ($this->onFail[$id])($response->getErrorMessage());
+                try{
+                    if($response->isError()) {
+                        if(isset($this->onFail[$id])) {
+                            ($this->onFail[$id])($response->getErrorMessage());
+                        }
+                    } else {
+                        if(isset($this->onSuccess[$id])) {
+                            ($this->onSuccess[$id])($response->getResult());
+                        }
                     }
-                } else {
-                    if(isset($this->onSuccess[$id])) {
-                        ($this->onSuccess[$id])($response->getResult());
-                    }
+                }finally{
+                    unset($this->onSuccess[$id]);
+                    unset($this->onFail[$id]);
                 }
-                unset($this->onSuccess[$id]);
-                unset($this->onFail[$id]);
             }
         }
     }
