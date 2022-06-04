@@ -58,10 +58,14 @@ class MysqlLib{
         }
         $this->checkVersion();
         $this->plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
-            foreach($this->thread as $t) {
-                $t->triggerGarbageCollector();
-            }
+            $this->triggerGarbageCollector();
         }), 20 * 1800);
+    }
+
+    public function triggerGarbageCollector() {
+        foreach($this->thread as $t) {
+            $t->triggerGarbageCollector();
+        }
     }
 
     public function close() {
