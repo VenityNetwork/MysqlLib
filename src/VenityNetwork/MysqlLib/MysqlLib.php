@@ -68,7 +68,17 @@ class MysqlLib{
         }
     }
 
+    public function waitAll() {
+        foreach($this->thread as $k => $thread) {
+            while(($this->threadTasksCount[$k]) > 0) {
+                $this->handleResponse($k);
+                usleep(1000);
+            }
+        }
+    }
+
     public function close() {
+        $this->waitAll();
         foreach($this->thread as $thread){
             $thread->close();
         }
