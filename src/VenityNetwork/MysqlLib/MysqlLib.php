@@ -75,9 +75,9 @@ class MysqlLib{
     }
 
     private function checkVersion() {
-        $this->rawSelect("SELECT VERSION() as v", [], function(array $rows) {
+        $this->rawSelect("SELECT VERSION() as v", [], static function(array $rows) {
             Server::getInstance()->getLogger()->notice("DB Version = " . $rows[0]["v"]);
-        }, function(string $error) {
+        }, static function(string $error) {
             Server::getInstance()->getLogger()->error("Mysql Error: " . $error);
         });
     }
