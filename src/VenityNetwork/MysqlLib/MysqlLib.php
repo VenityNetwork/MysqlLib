@@ -104,8 +104,8 @@ class MysqlLib{
     }
 
     private function handleResponse(int $thread) {
-        $this->threadTasksCount[$thread]--;
         while(($response = $this->thread[$thread]->fetchResponse()) !== null) {
+            $this->threadTasksCount[$thread]--;
             $response = igbinary_unserialize($response);
             if($response instanceof MysqlResponse) {
                 $id = $response->getId();
