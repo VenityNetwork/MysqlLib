@@ -185,4 +185,8 @@ class MysqlThread extends Thread{
             $this->notifyOne();
         });
     }
+
+    public function getSleeperNotifier(): SleeperNotifier{
+        return $this->notifier;
+    }
 }

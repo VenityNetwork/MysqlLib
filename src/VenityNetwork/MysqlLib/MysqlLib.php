@@ -81,6 +81,7 @@ class MysqlLib{
         $this->waitAll();
         foreach($this->thread as $thread){
             $thread->close();
+            Server::getInstance()->getTickSleeper()->removeNotifier($thread->getSleeperNotifier());
         }
     }
 
