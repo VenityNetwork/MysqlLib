@@ -30,8 +30,8 @@ class MysqlLib{
     }
 
 
-    public static function init(PluginBase $plugin, MysqlCredentials $credentials, int $threads = 2): MysqlLib{
-        return new self($plugin, $credentials, $threads);
+    public static function init(PluginBase $plugin, MysqlCredentials $credentials, int $threads = 2, bool $ignoreError = false): MysqlLib{
+        return new self($plugin, $credentials, $threads, $ignoreError);
     }
     /** @var MysqlThread[] */
     private array $thread = [];
@@ -41,7 +41,7 @@ class MysqlLib{
     private int $nextId = 0;
     private int $previousThread = -1;
 
-    private function __construct(private PluginBase $plugin, MysqlCredentials $credentials, int $threads) {
+    private function __construct(private PluginBase $plugin, MysqlCredentials $credentials, int $threads, private bool $ignoreError) {
         for($i = 0; $i < $threads; $i++){
             $notifier = new SleeperNotifier();
             Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() use ($i) {
@@ -123,11 +123,19 @@ class MysqlLib{
                 try{
                     if($response->isError()) {
                         if(isset($this->onFail[$id])) {
-                            ($this->onFail[$id])($response->getErrorMessage());
+                            if($this->ignoreError) {
+                                $this->ignoreError(fn() => ($this->onFail[$id])($response->getErrorMessage()));
+                            }else{
+                                ($this->onFail[$id])($response->getErrorMessage());
+                            }
                         }
                     } else {
                         if(isset($this->onSuccess[$id])) {
-                            ($this->onSuccess[$id])($response->getResult());
+                            if($this->ignoreError) {
+                                $this->ignoreError(fn() => ($this->onSuccess[$id])($response->getResult()));
+                            }else{
+                                ($this->onSuccess[$id])($response->getResult());
+                            }
                         }
                     }
                 }finally{
@@ -213,6 +221,14 @@ class MysqlLib{
 		    };
 	    }
         $this->query(RawInsertQuery::class, [$query, $args], $onSuccess, $onFail);
+    }
+
+    private function ignoreError(callable $cb) {
+        try {
+            $cb();
+        }catch(\Throwable $t) {
+            Server::getInstance()->getLogger()->logException($t);
+        }
     }
 }
 
