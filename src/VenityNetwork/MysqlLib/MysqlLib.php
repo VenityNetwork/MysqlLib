@@ -7,14 +7,12 @@ namespace VenityNetwork\MysqlLib;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
-use pocketmine\snooze\SleeperNotifier;
 use VenityNetwork\MysqlLib\query\RawChangeQuery;
 use VenityNetwork\MysqlLib\query\RawGenericQuery;
 use VenityNetwork\MysqlLib\query\RawInsertQuery;
 use VenityNetwork\MysqlLib\query\RawSelectQuery;
 use function igbinary_unserialize;
 use function usleep;
-use const PTHREADS_INHERIT_NONE;
 
 class MysqlLib{
 
@@ -43,12 +41,11 @@ class MysqlLib{
 
     private function __construct(private PluginBase $plugin, MysqlCredentials $credentials, int $threads, private bool $ignoreError) {
         for($i = 0; $i < $threads; $i++){
-            $notifier = new SleeperNotifier();
-            Server::getInstance()->getTickSleeper()->addNotifier($notifier, function() use ($i) {
+            $sleeperEntry = Server::getInstance()->getTickSleeper()->addNotifier(function() use ($i) {
                 $this->handleResponse($i);
             });
-            $t = new MysqlThread(Server::getInstance()->getLogger(), $notifier, $credentials);
-            $t->start(PTHREADS_INHERIT_NONE);
+            $t = new MysqlThread(Server::getInstance()->getLogger(), $sleeperEntry, $credentials);
+            $t->start();
             while(!$t->running) {
                 usleep(1000);
             }
@@ -62,13 +59,13 @@ class MysqlLib{
         }), 20 * 1800);
     }
 
-    public function triggerGarbageCollector() {
+    public function triggerGarbageCollector(): void{
         foreach($this->thread as $t) {
             $t->triggerGarbageCollector();
         }
     }
 
-    public function waitAll() {
+    public function waitAll(): void{
         foreach($this->thread as $k => $thread) {
             while(($this->threadTasksCount[$k]) > 0) {
                 $this->handleResponse($k);
@@ -77,15 +74,15 @@ class MysqlLib{
         }
     }
 
-    public function close() {
+    public function close(): void{
         $this->waitAll();
         foreach($this->thread as $thread){
             $thread->close();
-            Server::getInstance()->getTickSleeper()->removeNotifier($thread->getSleeperNotifier());
+            Server::getInstance()->getTickSleeper()->removeNotifier($thread->getSleeperEntry()->getNotifierId());
         }
     }
 
-    private function checkVersion() {
+    private function checkVersion(): void{
         $this->rawSelect("SELECT VERSION() as v", [], static function(array $rows) {
             Server::getInstance()->getLogger()->notice("DB Version = " . $rows[0]["v"]);
         }, static function(string $error) {
@@ -114,7 +111,7 @@ class MysqlLib{
         return $thread;
     }
 
-    private function handleResponse(int $thread) {
+    private function handleResponse(int $thread): void{
         while(($response = $this->thread[$thread]->fetchResponse()) !== null) {
             $this->threadTasksCount[$thread]--;
             $response = igbinary_unserialize($response);
@@ -153,7 +150,7 @@ class MysqlLib{
      * @param callable|null $onFail - function(string $errorMessage) : void {}
      * @return void
      */
-    public function query(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null) {
+    public function query(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null): void{
         $this->nextId++;
         if($onSuccess !== null) {
             $this->onSuccess[$this->nextId] = $onSuccess;
@@ -173,7 +170,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawSelect(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawSelect(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
         $this->query(RawSelectQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
@@ -192,7 +189,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null) {
+    public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null): void{
         $this->query(RawGenericQuery::class, [$query], $onSuccess, $onFail);
     }
 
@@ -203,7 +200,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawChange(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawChange(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
         $this->query(RawChangeQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
@@ -214,7 +211,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawInsert(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawInsert(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
 	    if($onSuccess !== null) {
 		    $onSuccess = static function(array $result) use ($onSuccess) {
 			    $onSuccess($result[0], $result[1]);
@@ -223,7 +220,7 @@ class MysqlLib{
         $this->query(RawInsertQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
-    private function ignoreError(callable $cb) {
+    private function ignoreError(callable $cb): void{
         try {
             $cb();
         }catch(\Throwable $t) {

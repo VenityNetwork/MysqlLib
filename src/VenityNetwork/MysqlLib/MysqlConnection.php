@@ -6,6 +6,7 @@ namespace VenityNetwork\MysqlLib;
 
 use mysqli;
 use mysqli_result;
+use pocketmine\thread\log\AttachableThreadSafeLogger;
 use VenityNetwork\MysqlLib\result\ChangeResult;
 use VenityNetwork\MysqlLib\result\InsertResult;
 use VenityNetwork\MysqlLib\result\Result;
@@ -30,11 +31,11 @@ class MysqlConnection{
         protected MysqlThread $thread) {
     }
 
-    public function getLogger() : \AttachableThreadedLogger{
+    public function getLogger() : AttachableThreadSafeLogger{
         return $this->thread->getLogger();
     }
 
-    public function connect() {
+    public function connect(): void{
         $this->close();
         $this->mysqli = @new mysqli($this->host, $this->user, $this->password, $this->db, $this->port);
         if($this->mysqli->connect_error) {
@@ -42,13 +43,13 @@ class MysqlConnection{
         }
     }
 
-    public function checkConnection() {
+    public function checkConnection(): void{
         if(!isset($this->mysqli) || !$this->mysqli->ping()) {
             $this->connect();
         }
     }
 
-    public function close() {
+    public function close(): void{
         if(isset($this->mysqli)){
             @$this->mysqli->close();
             unset($this->mysqli);
@@ -61,9 +62,12 @@ class MysqlConnection{
 
 
     /**
+     * @param string $query
+     * @param int|string|float ...$args
      * @return InsertResult
+     * @throws MysqlException
      */
-    public function insert(string $query, ...$args) {
+    public function insert(string $query, ...$args): InsertResult{
         $ret = $this->query(self::MODE_INSERT, $query, ...$args);
         if(!$ret instanceof InsertResult) {
             throw new MysqlException("Expected InsertResult got " . serialize($ret));
@@ -72,9 +76,12 @@ class MysqlConnection{
     }
 
     /**
+     * @param string $query
+     * @param int|string|float ...$args
      * @return SelectResult
+     * @throws MysqlException
      */
-    public function select(string $query, ...$args) {
+    public function select(string $query, ...$args): SelectResult{
         $ret = $this->query(self::MODE_SELECT, $query, ...$args);
         if(!$ret instanceof SelectResult) {
             throw new MysqlException("Expected SelectResult got " . serialize($ret));
@@ -83,9 +90,12 @@ class MysqlConnection{
     }
 
     /**
+     * @param string $query
+     * @param int|string|float ...$args
      * @return ChangeResult
+     * @throws MysqlException
      */
-    public function change(string $query, ...$args) {
+    public function change(string $query, ...$args): ChangeResult{
         $ret = $this->query(self::MODE_CHANGE, $query, ...$args);
         if(!$ret instanceof ChangeResult) {
             throw new MysqlException("Expected ChangeResult got " . serialize($ret));
@@ -94,9 +104,11 @@ class MysqlConnection{
     }
 
     /**
+     * @param string $query
      * @return Result
+     * @throws MysqlException
      */
-    public function generic(string $query) {
+    public function generic(string $query): Result{
         $ret = $this->query(self::MODE_GENERIC, $query);
         if(!$ret instanceof Result) {
             throw new MysqlException("Expected Result got " . serialize($ret));
@@ -107,7 +119,7 @@ class MysqlConnection{
     /**
      * @param int $mode
      * @param string $query
-     * @param ...$args
+     * @param int|string|float ...$args
      * @return bool|ChangeResult|InsertResult|Result|SelectResult
      * @throws MysqlException
      */

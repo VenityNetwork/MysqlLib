@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace VenityNetwork\MysqlLib;
 
 use ClassLoader;
+use pmmp\thread\ThreadSafeArray;
 use pocketmine\Server;
+use pocketmine\snooze\SleeperHandlerEntry;
 use pocketmine\snooze\SleeperNotifier;
+use pocketmine\thread\log\AttachableThreadSafeLogger;
 use pocketmine\thread\Thread;
 use Threaded;
 use Throwable;
@@ -25,15 +28,18 @@ use function sleep;
 
 class MysqlThread extends Thread{
 
-    private Threaded $requests;
-    private Threaded $responses;
+    private const GC_CODE = "gc";
+
+    private ThreadSafeArray $requests;
+    private ThreadSafeArray $responses;
     private MysqlConnection $connection;
     private string $credentials;
     public bool $running = true;
+    private SleeperNotifier $notifier;
 
-    public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
-        $this->requests = new Threaded;
-        $this->responses = new Threaded;
+    public function __construct(protected AttachableThreadSafeLogger $logger, protected SleeperHandlerEntry $sleeperEntry, MysqlCredentials $credentials){
+        $this->requests = new ThreadSafeArray();
+        $this->responses = new ThreadSafeArray();
         $this->credentials = igbinary_serialize($credentials);
 
         if(!MysqlLib::isPackaged()){
@@ -44,7 +50,7 @@ class MysqlThread extends Thread{
         }
     }
 
-    public function getLogger(): \AttachableThreadedLogger{
+    public function getLogger(): AttachableThreadSafeLogger{
         return $this->logger;
     }
 
@@ -57,6 +63,7 @@ class MysqlThread extends Thread{
     public function onRun(): void{
         ini_set("memory_limit", "256M");
         gc_enable();
+        $this->notifier = $this->sleeperEntry->createNotifier();
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
@@ -98,7 +105,7 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function processRequests() {
+    private function processRequests(): void{
         while(($request = $this->readRequests()) !== null) {
             $request = igbinary_unserialize($request);
             if($request instanceof MysqlRequest) {
@@ -131,7 +138,7 @@ class MysqlThread extends Thread{
                     }
                 }
                 $this->sendResponse($request->getId(), null, true, "Unknown query={$request->getQuery()}");
-            }elseif($request === "gc"){
+            }elseif($request === self::GC_CODE){
                 gc_enable();
                 gc_collect_cycles();
                 gc_mem_caches();
@@ -139,7 +146,7 @@ class MysqlThread extends Thread{
         }
     }
 
-    public function sendRequest(MysqlRequest $request) {
+    public function sendRequest(MysqlRequest $request): void{
         $this->synchronized(function() use ($request) {
             $this->requests[] = igbinary_serialize($request);
             $this->notifyOne();
@@ -152,7 +159,7 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = "") {
+    private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = ""): void{
         $this->synchronized(function() use ($id, $response, $error, $errorMessage) : void {
             $this->responses[] = igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
             $this->notifier->wakeupSleeper();
@@ -163,7 +170,7 @@ class MysqlThread extends Thread{
         return "MysqlLib";
     }
 
-    public function close(){
+    public function close(): void{
         if(!$this->isSafeRunning()) {
             return;
         }
@@ -179,14 +186,14 @@ class MysqlThread extends Thread{
         parent::quit();
     }
 
-    public function triggerGarbageCollector(){
+    public function triggerGarbageCollector(): void{
         $this->synchronized(function() : void {
-            $this->requests[] = igbinary_serialize("gc");
+            $this->requests[] = igbinary_serialize(self::GC_CODE);
             $this->notifyOne();
         });
     }
 
-    public function getSleeperNotifier(): SleeperNotifier{
-        return $this->notifier;
+    public function getSleeperEntry(): SleeperHandlerEntry{
+        return $this->sleeperEntry;
     }
 }
