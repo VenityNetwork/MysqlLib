@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace VenityNetwork\MysqlLib;
 
-use ClassLoader;
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\Server;
 use pocketmine\snooze\SleeperHandlerEntry;
@@ -40,13 +39,6 @@ class MysqlThread extends Thread{
         $this->requests = new ThreadSafeArray();
         $this->responses = new ThreadSafeArray();
         $this->credentials = igbinary_serialize($credentials);
-
-        if(!MysqlLib::isPackaged()){
-            if(($virion = Server::getInstance()->getPluginManager()->getPlugin("DEVirion")) !== null){
-                $cl = $virion->getVirionClassLoader();
-                $this->setClassLoaders([Server::getInstance()->getLoader(), $cl]);
-            }
-        }
     }
 
     public function getLogger(): AttachableThreadSafeLogger{

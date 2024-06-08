@@ -16,18 +16,6 @@ use function usleep;
 
 class MysqlLib{
 
-    /** @var bool */
-    private static bool $packaged;
-
-    public static function isPackaged() : bool{
-        return self::$packaged;
-    }
-
-    public static function detectPackaged() : void{
-        self::$packaged = __CLASS__ !== 'VenityNetwork\\MysqlLib\\MysqlLib';
-    }
-
-
     public static function init(PluginBase $plugin, MysqlCredentials $credentials, int $threads = 2, bool $ignoreError = false): MysqlLib{
         return new self($plugin, $credentials, $threads, $ignoreError);
     }
@@ -231,5 +219,3 @@ class MysqlLib{
         }
     }
 }
-
-MysqlLib::detectPackaged();
