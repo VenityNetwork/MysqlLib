@@ -11,7 +11,6 @@ use pocketmine\snooze\SleeperHandlerEntry;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\thread\log\AttachableThreadSafeLogger;
 use pocketmine\thread\Thread;
-use Threaded;
 use Throwable;
 use VenityNetwork\MysqlLib\query\Query;
 use function class_exists;
@@ -35,7 +34,6 @@ class MysqlThread extends Thread{
     private MysqlConnection $connection;
     private string $credentials;
     public bool $running = true;
-    private SleeperNotifier $notifier;
     private bool $busy = false;
 
     public function __construct(protected AttachableThreadSafeLogger $logger, protected SleeperHandlerEntry $sleeperEntry, MysqlCredentials $credentials){
@@ -64,7 +62,7 @@ class MysqlThread extends Thread{
     public function onRun(): void{
         ini_set("memory_limit", "256M");
         gc_enable();
-        $this->notifier = $this->sleeperEntry->createNotifier();
+        $notifier = $this->sleeperEntry->createNotifier();
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
@@ -75,7 +73,7 @@ class MysqlThread extends Thread{
             }
             $this->busy = true;
             try{
-                $this->processRequests();
+                $this->processRequests($notifier);
             } catch(Throwable $t) {
                 $this->logger->logException($t);
                 $this->connection->close();
@@ -108,7 +106,7 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function processRequests(): void{
+    private function processRequests(SleeperNotifier $notifier): void{
         while(($request = $this->readRequests()) !== null) {
             $request = igbinary_unserialize($request);
             if($request instanceof MysqlRequest) {
@@ -127,12 +125,12 @@ class MysqlThread extends Thread{
                             }
                             $this->logger->debug("Query succeed in " . floor((microtime(true) - $start) * 1000) . "ms (query={$request->getQuery()},id={$request->getId()},params=$ar,result=`$resultDebug`)");
 
-                            $this->sendResponse($request->getId(), $result);
+                            $this->sendResponse($notifier, $request->getId(), $result);
                             continue;
                         }
                         throw new MysqlException("Query must instanceof ".Query::class." got " . $query::class);
                     } catch(Throwable $t) {
-                        $this->sendResponse($request->getId(), null, true, $t->getMessage());
+                        $this->sendResponse($notifier, $request->getId(), null, true, $t->getMessage());
                         $this->logger->error("Query error (query={$queryClass},id={$request->getId()},params=$ar)");
                         $this->logger->logException($t);
                         // reconnect when error to avoid deadlock transaction
@@ -140,7 +138,7 @@ class MysqlThread extends Thread{
                         return;
                     }
                 }
-                $this->sendResponse($request->getId(), null, true, "Unknown query={$request->getQuery()}");
+                $this->sendResponse($notifier, $request->getId(), null, true, "Unknown query={$request->getQuery()}");
             }elseif($request === self::GC_CODE){
                 gc_enable();
                 gc_collect_cycles();
@@ -162,10 +160,10 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function sendResponse(int $id, mixed $response, bool $error = false, string $errorMessage = ""): void{
-        $this->synchronized(function() use ($id, $response, $error, $errorMessage) : void {
+    private function sendResponse(SleeperNotifier $notifier, int $id, mixed $response, bool $error = false, string $errorMessage = ""): void{
+        $this->synchronized(function() use ($notifier, $id, $response, $error, $errorMessage) : void {
             $this->responses[] = igbinary_serialize(new MysqlResponse($id, $response, $error, $errorMessage));
-            $this->notifier->wakeupSleeper();
+            $notifier->wakeupSleeper();
         });
     }
 
