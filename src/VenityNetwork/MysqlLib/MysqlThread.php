@@ -36,6 +36,7 @@ class MysqlThread extends Thread{
     private string $credentials;
     public bool $running = true;
     private SleeperNotifier $notifier;
+    private bool $busy = false;
 
     public function __construct(protected AttachableThreadSafeLogger $logger, protected SleeperHandlerEntry $sleeperEntry, MysqlCredentials $credentials){
         $this->requests = new ThreadSafeArray();
@@ -72,12 +73,14 @@ class MysqlThread extends Thread{
                 sleep(5);
                 continue;
             }
+            $this->busy = true;
             try{
                 $this->processRequests();
             } catch(Throwable $t) {
                 $this->logger->logException($t);
                 $this->connection->close();
             }
+            $this->busy = false;
             $this->synchronized(function() {
                 $this->wait();
             });
@@ -195,5 +198,9 @@ class MysqlThread extends Thread{
 
     public function getSleeperEntry(): SleeperHandlerEntry{
         return $this->sleeperEntry;
+    }
+
+    public function isBusy(): bool{
+        return $this->busy;
     }
 }
