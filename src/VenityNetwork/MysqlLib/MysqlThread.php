@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace VenityNetwork\MysqlLib;
 
 use pmmp\thread\ThreadSafeArray;
-use pocketmine\Server;
 use pocketmine\snooze\SleeperHandlerEntry;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\thread\log\AttachableThreadSafeLogger;
@@ -30,7 +29,6 @@ class MysqlThread extends Thread{
 
     private ThreadSafeArray $requests;
     private ThreadSafeArray $responses;
-    private MysqlConnection $connection;
     private string $credentials;
     public bool $running = true;
     private bool $busy = false;
@@ -57,18 +55,18 @@ class MysqlThread extends Thread{
         $notifier = $this->sleeperEntry->createNotifier();
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
-        $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
+        $connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
         while($this->isSafeRunning()){
-            if(!$this->checkConnection()) {
+            if(!$this->checkConnection($connection)) {
                 sleep(5);
                 continue;
             }
             $this->busy = true;
             try{
-                $this->processRequests($notifier);
+                $this->processRequests($connection, $notifier);
             } catch(Throwable $t) {
                 $this->logger->logException($t);
-                $this->connection->close();
+                $connection->close();
             }
             $this->busy = false;
             $this->synchronized(function() {
@@ -76,15 +74,15 @@ class MysqlThread extends Thread{
             });
         }
         $this->logger->info("MysqlThread closed.");
-        $this->connection->close();
+        $connection->close();
         $this->synchronized(function() {
             $this->running = false;
         });
     }
 
-    private function checkConnection(): bool{
+    private function checkConnection(MysqlConnection $connection): bool{
         try{
-            $this->connection->checkConnection();
+            $connection->checkConnection();
             return true;
         }catch(Throwable $e){
             $this->logger->logException($e);
@@ -98,7 +96,7 @@ class MysqlThread extends Thread{
         });
     }
 
-    private function processRequests(SleeperNotifier $notifier): void{
+    private function processRequests(MysqlConnection $connection, SleeperNotifier $notifier): void{
         while(($request = $this->readRequests()) !== null) {
             $request = igbinary_unserialize($request);
             if($request instanceof MysqlRequest) {
@@ -109,7 +107,7 @@ class MysqlThread extends Thread{
                     try{
                         $query = new ($queryClass)();
                         if($query instanceof Query){
-                            $result = $query->execute($this->connection, $request->getParams());
+                            $result = $query->execute($connection, $request->getParams());
                             if(is_array($result)){
                                 $resultDebug = "(array) " . Utils::argsToString($result);
                             }else{
@@ -126,7 +124,7 @@ class MysqlThread extends Thread{
                         $this->logger->error("Query error (query={$queryClass},id={$request->getId()},params=$ar)");
                         $this->logger->logException($t);
                         // reconnect when error to avoid deadlock transaction
-                        $this->connection->close();
+                        $connection->close();
                         return;
                     }
                 }
