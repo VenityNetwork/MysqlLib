@@ -97,6 +97,9 @@ class MysqlLib{
         $thread = null;
         $currentTask = -1;
         foreach($this->threadTasksCount as $k => $v) {
+            if($this->thread[$k]->isBusy()){
+                continue;
+            }
             if($v >= $currentTask && $this->previousThread !== $k) {
                 $thread = $k;
                 $currentTask = $v;

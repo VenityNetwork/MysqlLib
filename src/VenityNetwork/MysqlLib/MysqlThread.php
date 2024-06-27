@@ -30,6 +30,7 @@ class MysqlThread extends Thread{
     private MysqlConnection $connection;
     private string $credentials;
     public bool $running = true;
+    private bool $busy = false;
 
     public function __construct(protected \AttachableThreadedLogger $logger, protected SleeperNotifier $notifier, MysqlCredentials $credentials){
         $this->requests = new Threaded;
@@ -48,29 +49,25 @@ class MysqlThread extends Thread{
         return $this->logger;
     }
 
-    public function isSafeRunning() : bool {
-        return $this->synchronized(function() : bool {
-            return $this->running;
-        });
-    }
-
     public function onRun(): void{
         ini_set("memory_limit", "256M");
         gc_enable();
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $this->connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
-        while($this->isSafeRunning()){
+        while($this->running){
             if(!$this->checkConnection()) {
                 sleep(5);
                 continue;
             }
+            $this->busy = true;
             try{
                 $this->processRequests();
             } catch(Throwable $t) {
                 $this->logger->logException($t);
                 $this->connection->close();
             }
+            $this->busy = false;
             $this->synchronized(function() {
                 $this->wait();
             });
@@ -164,7 +161,7 @@ class MysqlThread extends Thread{
     }
 
     public function close(){
-        if(!$this->isSafeRunning()) {
+        if(!$this->isRunning) {
             return;
         }
         $this->synchronized(function() {
@@ -188,5 +185,9 @@ class MysqlThread extends Thread{
 
     public function getSleeperNotifier(): SleeperNotifier{
         return $this->notifier;
+    }
+
+    public function isBusy(): bool{
+        return $this->busy;
     }
 }
