@@ -48,9 +48,12 @@ class MysqlLib{
             $this->triggerGarbageCollector();
         }), 20 * 1800);
 
-        $this->plugin->getServer()->getPluginManager()->registerEvent(LowMemoryEvent::class, function(LowMemoryEvent $event): void{
-            $this->triggerGarbageCollector();
-        }, EventPriority::NORMAL, $this->plugin);
+        // register event when plugin is enabled
+        $this->plugin->getScheduler()->scheduleDelayedTask(new ClosureTask(function(): void{
+            $this->plugin->getServer()->getPluginManager()->registerEvent(LowMemoryEvent::class, function(LowMemoryEvent $event): void{
+                $this->triggerGarbageCollector();
+            }, EventPriority::NORMAL, $this->plugin);
+        }), 0);
     }
 
     public function triggerGarbageCollector(): void{
