@@ -7,9 +7,9 @@ namespace VenityNetwork\MysqlLib;
 class MysqlRequest{
 
     public function __construct(
-        private int $id,
-        private string $query,
-        private array $params = []
+        private readonly int    $id,
+        private readonly string $query,
+        private readonly array  $params = []
     ) {
     }
 

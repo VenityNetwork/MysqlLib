@@ -43,12 +43,6 @@ class MysqlThread extends Thread{
         return $this->logger;
     }
 
-    public function isSafeRunning() : bool {
-        return $this->synchronized(function() : bool {
-            return $this->running;
-        });
-    }
-
     public function onRun(): void{
         ini_set("memory_limit", "256M");
         gc_enable();
@@ -56,7 +50,7 @@ class MysqlThread extends Thread{
         /** @var MysqlCredentials $cred */
         $cred = igbinary_unserialize($this->credentials);
         $connection = new MysqlConnection($cred->getHost(), $cred->getUser(), $cred->getPassword(), $cred->getDb(), $cred->getPort(), $this);
-        while($this->isSafeRunning()){
+        while($this->running){
             if(!$this->checkConnection($connection)) {
                 sleep(5);
                 continue;
@@ -162,7 +156,7 @@ class MysqlThread extends Thread{
     }
 
     public function close(): void{
-        if(!$this->isSafeRunning()) {
+        if(!$this->running) {
             return;
         }
         $this->synchronized(function() {

@@ -7,8 +7,8 @@ namespace VenityNetwork\MysqlLib\result;
 class InsertResult extends Result{
 
     public function __construct(
-        private int $affected_rows,
-        private int $insert_id){
+        private readonly int $affected_rows,
+        private readonly int $insert_id){
     }
 
     public function getAffectedRows(): int{

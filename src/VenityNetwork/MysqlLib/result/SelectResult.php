@@ -6,7 +6,7 @@ namespace VenityNetwork\MysqlLib\result;
 
 class SelectResult extends Result{
 
-    public function __construct(private array $rows) {
+    public function __construct(private readonly array $rows) {
     }
 
     public function getRows(): array{

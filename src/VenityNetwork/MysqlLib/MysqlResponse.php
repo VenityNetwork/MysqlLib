@@ -7,10 +7,10 @@ namespace VenityNetwork\MysqlLib;
 class MysqlResponse{
 
     public function __construct(
-        private int $id,
-        private mixed $result,
-        private bool $error,
-        private string $errorMessage
+        private readonly int   $id,
+        private readonly mixed $result,
+        private readonly bool  $error,
+        private readonly string $errorMessage
     ){
     }
 

@@ -7,7 +7,7 @@ namespace VenityNetwork\MysqlLib\result;
 class ChangeResult extends Result{
 
     public function __construct(
-        private int $affected_rows) {
+        private readonly int $affected_rows) {
     }
 
     public function getAffectedRows(): int{

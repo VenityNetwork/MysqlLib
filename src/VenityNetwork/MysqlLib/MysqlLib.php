@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace VenityNetwork\MysqlLib;
 
+use pocketmine\event\EventPriority;
+use pocketmine\event\server\LowMemoryEvent;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
@@ -45,6 +47,10 @@ class MysqlLib{
         $this->plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
             $this->triggerGarbageCollector();
         }), 20 * 1800);
+
+        $this->plugin->getServer()->getPluginManager()->registerEvent(LowMemoryEvent::class, function(LowMemoryEvent $event): void{
+            $this->triggerGarbageCollector();
+        }, EventPriority::NORMAL, $this->plugin);
     }
 
     public function triggerGarbageCollector(): void{
@@ -165,7 +171,7 @@ class MysqlLib{
         $this->query(RawSelectQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
-    public function rawSelectOne(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null) {
+    public function rawSelectOne(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
 	    if($onSuccess !== null) {
 		    $onSuccess = static function(array $rows) use ($onSuccess) {
 			    $onSuccess($rows[0] ?? null);
