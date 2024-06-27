@@ -107,9 +107,21 @@ class MysqlLib{
         }
         if($thread === null) {
             foreach($this->threadTasksCount as $k => $v) {
+                if($this->thread[$k]->isBusy()){
+                    continue;
+                }
                 if($v > $currentTask) {
                     $thread = $k;
                     $currentTask = $v;
+                }
+            }
+
+            if($thread === null){
+                foreach($this->threadTasksCount as $k => $v) {
+                    if($v > $currentTask) {
+                        $thread = $k;
+                        $currentTask = $v;
+                    }
                 }
             }
         }
