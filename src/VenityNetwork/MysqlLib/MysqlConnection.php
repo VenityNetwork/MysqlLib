@@ -43,8 +43,16 @@ class MysqlConnection{
         }
     }
 
+    private function tryPing(): bool{
+        try{
+            return $this->mysqli->ping();
+        }catch(\Throwable $t){
+            return false;
+        }
+    }
+
     public function checkConnection(): void{
-        if(!isset($this->mysqli) || !$this->mysqli->ping()) {
+        if(!isset($this->mysqli) || !$this->tryPing()) {
             $this->connect();
         }
     }
