@@ -170,11 +170,11 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawSelect(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
+    public function rawSelect(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null): void{
         $this->query(RawSelectQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
-    public function rawSelectOne(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
+    public function rawSelectOne(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null): void{
 	    if($onSuccess !== null) {
 		    $onSuccess = static function(array $rows) use ($onSuccess) {
 			    $onSuccess($rows[0] ?? null);
@@ -189,7 +189,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawGeneric(string $query, callable $onSuccess = null, callable $onFail = null): void{
+    public function rawGeneric(string $query, ?callable $onSuccess = null, ?callable $onFail = null): void{
         $this->query(RawGenericQuery::class, [$query], $onSuccess, $onFail);
     }
 
@@ -200,7 +200,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawChange(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
+    public function rawChange(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null): void{
         $this->query(RawChangeQuery::class, [$query, $args], $onSuccess, $onFail);
     }
 
@@ -211,7 +211,7 @@ class MysqlLib{
      * @param callable|null $onFail
      * @return void
      */
-    public function rawInsert(string $query, array $args = [], callable $onSuccess = null, callable $onFail = null): void{
+    public function rawInsert(string $query, array $args = [], ?callable $onSuccess = null, ?callable $onFail = null): void{
 	    if($onSuccess !== null) {
 		    $onSuccess = static function(array $result) use ($onSuccess) {
 			    $onSuccess($result[0], $result[1]);

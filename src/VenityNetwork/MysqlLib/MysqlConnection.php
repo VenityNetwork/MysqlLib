@@ -45,7 +45,17 @@ class MysqlConnection{
 
     private function tryPing(): bool{
         try{
-            return $this->mysqli->ping();
+            $result = $this->mysqli->query("SELECT 'ping' as v");
+            if(is_bool($result)){
+                return $result;
+            }
+            $row = $result->fetch_assoc();
+            if($row === null || !isset($row["v"]) || $row["v"] !== "ping"){
+                $result->close();
+                return false;
+            }
+            $result->close();
+            return true;
         }catch(\Throwable $t){
             return false;
         }
